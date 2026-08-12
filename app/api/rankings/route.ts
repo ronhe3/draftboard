@@ -83,7 +83,7 @@ export async function GET(request: NextRequest) {
   if (!apiKey) return NextResponse.json({ players: fallbackPlayers, scoring, source: "preview" });
 
   try {
-    const requestOptions = { headers: { "Ocp-Apim-Subscription-Key": apiKey }, next: { revalidate: 900 } };
+    const requestOptions = { headers: { "Ocp-Apim-Subscription-Key": apiKey }, next: { revalidate: 300 } };
     const [projectionResponse, defenseResponse, teamsResponse, byesResponse] = await Promise.all([
       fetch(`https://api.sportsdata.io/v3/nfl/projections/json/PlayerSeasonProjectionStats/${season}`, requestOptions),
       fetch(`https://api.sportsdata.io/v3/nfl/projections/json/FantasyDefenseProjectionsBySeason/${season}`, requestOptions),

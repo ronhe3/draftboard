@@ -70,11 +70,26 @@ export default function Rankings() {
   const [detailLoading, setDetailLoading] = useState(false);
 
   useEffect(() => {
-    setLoading(true);
-    fetch(`/api/rankings?scoring=${encodeURIComponent(scoring)}`)
+    let cancelled = false;
+    const loadRankings = (showLoading: boolean) => {
+      if (showLoading) setLoading(true);
+      fetch(`/api/rankings?scoring=${encodeURIComponent(scoring)}`, { cache: "no-store" })
       .then((r) => r.json())
-      .then((data) => setPlayers(data.players ?? []))
-      .finally(() => setLoading(false));
+      .then((data) => {
+        if (!cancelled) setPlayers(data.players ?? []);
+      })
+      .catch(() => undefined)
+      .finally(() => {
+        if (!cancelled && showLoading) setLoading(false);
+      });
+    };
+
+    loadRankings(true);
+    const refreshTimer = window.setInterval(() => loadRankings(false), 5 * 60 * 1000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(refreshTimer);
+    };
   }, [scoring]);
 
   const visible = useMemo(() => players.filter((p) =>
