@@ -17,22 +17,35 @@ type SportsDataDefense = {
   FantasyPoints: number | null;
 };
 type SportsDataTeam = { Key:string; WikipediaLogoUrl:string|null; WikipediaWordMarkUrl:string|null };
+type SportsDataBye = { Team:string|null; Week:number };
+
+const byeWeeks2026 = new Map<string, number>([
+  ["CAR", 5], ["KC", 5],
+  ["CIN", 6], ["DET", 6], ["MIA", 6], ["MIN", 6],
+  ["BUF", 7], ["JAX", 7], ["LAC", 7], ["WAS", 7],
+  ["HOU", 8], ["NO", 8], ["NYG", 8], ["SF", 8],
+  ["PIT", 9], ["TEN", 9],
+  ["CHI", 10], ["DEN", 10], ["PHI", 10], ["TB", 10],
+  ["ATL", 11], ["CLE", 11], ["GB", 11], ["LAR", 11], ["NE", 11], ["SEA", 11],
+  ["BAL", 13], ["IND", 13], ["LV", 13], ["NYJ", 13],
+  ["ARI", 14], ["DAL", 14],
+]);
 
 function validImage(...urls: Array<string | null | undefined>) {
   return urls.find((url) => typeof url === "string" && /^https:\/\//i.test(url)) ?? "";
 }
 
 const fallbackPlayers = [
-  { id:"1", rank:1, name:"Ja'Marr Chase", team:"CIN", position:"WR", positionRank:1, tier:1, bye:10, trend:0, note:"Elite target share with week-winning ceiling." },
-  { id:"2", rank:2, name:"Bijan Robinson", team:"ATL", position:"RB", positionRank:1, tier:1, bye:12, trend:1, note:"Three-down profile and the safest volume at RB." },
-  { id:"3", rank:3, name:"Jahmyr Gibbs", team:"DET", position:"RB", positionRank:2, tier:1, bye:8, trend:2, note:"Explosive efficiency in an elite scoring environment." },
+  { id:"1", rank:1, name:"Ja'Marr Chase", team:"CIN", position:"WR", positionRank:1, tier:1, bye:6, trend:0, note:"Elite target share with week-winning ceiling." },
+  { id:"2", rank:2, name:"Bijan Robinson", team:"ATL", position:"RB", positionRank:1, tier:1, bye:11, trend:1, note:"Three-down profile and the safest volume at RB." },
+  { id:"3", rank:3, name:"Jahmyr Gibbs", team:"DET", position:"RB", positionRank:2, tier:1, bye:6, trend:2, note:"Explosive efficiency in an elite scoring environment." },
   { id:"4", rank:4, name:"Justin Jefferson", team:"MIN", position:"WR", positionRank:2, tier:1, bye:6, trend:-1, note:"Unmatched route talent keeps the floor exceptionally high." },
-  { id:"5", rank:5, name:"CeeDee Lamb", team:"DAL", position:"WR", positionRank:3, tier:2, bye:10, trend:0, note:"A volume anchor who can carry a receiving corps." },
-  { id:"6", rank:6, name:"Saquon Barkley", team:"PHI", position:"RB", positionRank:3, tier:2, bye:9, trend:-2, note:"Touchdown access offsets a little workload uncertainty." },
-  { id:"7", rank:7, name:"Puka Nacua", team:"LAR", position:"WR", positionRank:4, tier:2, bye:8, trend:3, note:"Physical volume receiver entering his prime." },
+  { id:"5", rank:5, name:"CeeDee Lamb", team:"DAL", position:"WR", positionRank:3, tier:2, bye:14, trend:0, note:"A volume anchor who can carry a receiving corps." },
+  { id:"6", rank:6, name:"Saquon Barkley", team:"PHI", position:"RB", positionRank:3, tier:2, bye:10, trend:-2, note:"Touchdown access offsets a little workload uncertainty." },
+  { id:"7", rank:7, name:"Puka Nacua", team:"LAR", position:"WR", positionRank:4, tier:2, bye:11, trend:3, note:"Physical volume receiver entering his prime." },
   { id:"8", rank:8, name:"Josh Allen", team:"BUF", position:"QB", positionRank:1, tier:3, bye:7, trend:0, note:"The position's defining combination of arm and rushing equity." },
-  { id:"9", rank:9, name:"Amon-Ra St. Brown", team:"DET", position:"WR", positionRank:5, tier:3, bye:8, trend:1, note:"Bankable weekly usage from the slot and red zone." },
-  { id:"10", rank:10, name:"Brock Bowers", team:"LV", position:"TE", positionRank:1, tier:3, bye:8, trend:2, note:"Difference-making target volume at a scarce position." },
+  { id:"9", rank:9, name:"Amon-Ra St. Brown", team:"DET", position:"WR", positionRank:5, tier:3, bye:6, trend:1, note:"Bankable weekly usage from the slot and red zone." },
+  { id:"10", rank:10, name:"Brock Bowers", team:"LV", position:"TE", positionRank:1, tier:3, bye:13, trend:2, note:"Difference-making target volume at a scarce position." },
 ];
 
 function adp(player: SportsDataPlayer, scoring: string) {
@@ -43,7 +56,7 @@ function adp(player: SportsDataPlayer, scoring: string) {
   return standard ?? ppr ?? 9999;
 }
 
-function normalize(source: SportsDataPlayer[], scoring: string, byeWeeks: Map<number, number>, teamLogos: Map<string, string>) {
+function normalize(source: SportsDataPlayer[], scoring: string, byeWeeks: Map<string, number>, teamLogos: Map<string, string>) {
   const allowed = new Set(["QB", "RB", "WR", "TE", "K", "DST"]);
   const ranked = source
     .filter((p) => p.PlayerID && p.Name && p.Position && allowed.has(p.Position) && adp(p, scoring) < 9999)
@@ -55,7 +68,7 @@ function normalize(source: SportsDataPlayer[], scoring: string, byeWeeks: Map<nu
     const points = scoring === "Standard" ? p.FantasyPoints : (p.FantasyPointsPPR ?? p.FantasyPoints);
     return {
       id: String(p.PlayerID), rank: index + 1, name: p.Name!, team: p.Team ?? "FA", position,
-      positionRank: positionCounts[position], tier: Math.floor(index / 12) + 1, bye: byeWeeks.get(p.PlayerID!) ?? 0, trend: 0,
+      positionRank: positionCounts[position], tier: Math.floor(index / 12) + 1, bye: byeWeeks.get(p.Team ?? "") ?? 0, trend: 0,
       teamLogoUrl: teamLogos.get(p.Team ?? "") ?? null,
       note: points == null ? `Consensus ADP ${adp(p, scoring).toFixed(1)}` : `${points.toFixed(1)} projected points · ADP ${adp(p, scoring).toFixed(1)}`,
     };
@@ -71,13 +84,19 @@ export async function GET(request: NextRequest) {
 
   try {
     const requestOptions = { headers: { "Ocp-Apim-Subscription-Key": apiKey }, next: { revalidate: 900 } };
-    const [projectionResponse, defenseResponse, teamsResponse] = await Promise.all([
+    const [projectionResponse, defenseResponse, teamsResponse, byesResponse] = await Promise.all([
       fetch(`https://api.sportsdata.io/v3/nfl/projections/json/PlayerSeasonProjectionStats/${season}`, requestOptions),
       fetch(`https://api.sportsdata.io/v3/nfl/projections/json/FantasyDefenseProjectionsBySeason/${season}`, requestOptions),
       fetch("https://api.sportsdata.io/v3/nfl/scores/json/Teams", requestOptions),
+      fetch(`https://api.sportsdata.io/v3/nfl/scores/json/Byes/${season}`, requestOptions),
     ]);
     if (!projectionResponse.ok || !defenseResponse.ok) throw new Error("SportsDataIO request failed");
-    const byeWeeks = new Map<number, number>();
+    const byeWeeks = season.startsWith("2026") ? new Map(byeWeeks2026) : new Map<string, number>();
+    if (byesResponse.ok) {
+      for (const bye of await byesResponse.json() as SportsDataBye[]) {
+        if (bye.Team && Number.isInteger(bye.Week)) byeWeeks.set(bye.Team, bye.Week);
+      }
+    }
     const teamData = teamsResponse.ok ? await teamsResponse.json() as SportsDataTeam[] : [];
     const teamLogos = new Map(teamData.map((item) => [item.Key, validImage(item.WikipediaLogoUrl, item.WikipediaWordMarkUrl)]));
     const defenses = (await defenseResponse.json() as SportsDataDefense[]).map((d) => {
